@@ -1,6 +1,6 @@
 FROM alpine:3.7
 
-MAINTAINER Alexey Kioller <avkioller@gmail.com>
+LABEL maintainer="avkioller@gmail.com"
 
 RUN apk add --update --no-cache bash jq curl
 
