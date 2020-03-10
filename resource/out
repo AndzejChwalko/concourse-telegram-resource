@@ -14,23 +14,43 @@ cat > "${INPUT}" <&0
 BOT_TOKEN=$(    jq -r '.source.bot_token      // ""' "${INPUT}")
 CHAT_ID=$(      jq -r '.source.chat_id        // ""' "${INPUT}")
 CI_URL=$(       jq -r '.source.ci_url         // ""' "${INPUT}")
-MESSAGE=$(      jq -r '.params.message        // ""' "${INPUT}")
+STATUS=$(       jq -r '.params.status         // ""' "${INPUT}")
 MESSAGE_FILE=$( jq -r '.params.message_file   // ""' "${INPUT}")
-[[ -f "${MESSAGE_FILE}" ]] && MESSAGE="$(sed "s/{}/$(cat "${MESSAGE_FILE}")/g" <<< "${MESSAGE}")" 
+MESSAGE=$(cat ${MESSAGE_FILE})
 BUILD_URL="${CI_URL:=$ATC_EXTERNAL_URL}/teams/${BUILD_TEAM_NAME}/pipelines/${BUILD_PIPELINE_NAME}/jobs/${BUILD_JOB_NAME}/builds/${BUILD_NAME}"
 
 ERROR_MSG="Is not defined"
 [[ "${BOT_TOKEN:?$ERROR_MSG}" ]]
 [[ "${CHAT_ID:?$ERROR_MSG}"   ]]
 
-OUT_MESSAGE=$( cat <<EOF
-<b>${MESSAGE}</b>
+if [[ "$STATUS" == *"Doc"* ]]; then
+    OUT_MESSAGE=$( cat <<EOF
+<b>${STATUS}</b>
+${MESSAGE}
+EOF
+)
+else
+    if [[ $MESSAGE == "" ]]; then
+        OUT_MESSAGE=$( cat <<EOF
+<b>${STATUS}</b>
 <b>URL:</b> <a href="${BUILD_URL}">Link</a>
 <b>Pipeline: </b>${BUILD_PIPELINE_NAME}
 <b>Job: </b>${BUILD_JOB_NAME}
 <b>Build number: </b>${BUILD_NAME}
 EOF
-)
+    )
+    else
+        OUT_MESSAGE=$( cat <<EOF
+<b>${STATUS}</b>
+${MESSAGE}
+<b>URL:</b> <a href="${BUILD_URL}">Link</a>
+<b>Pipeline: </b>${BUILD_PIPELINE_NAME}
+<b>Job: </b>${BUILD_JOB_NAME}
+<b>Build number: </b>${BUILD_NAME}
+EOF
+    )
+    fi
+fi
 
 RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                 -d "chat_id=${CHAT_ID}" \
